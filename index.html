@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light"><title>Control de Horarios</title><style>
+:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#18334b;background:#f3f7fb}*{box-sizing:border-box}body{margin:0}header{background:#113f6b;color:white;padding:19px max(18px,calc((100vw - 1020px)/2));display:flex;align-items:center;justify-content:space-between;gap:10px}header strong{font-size:1.15rem}header small{display:block;color:#c6dceb;margin-top:4px}main{max-width:1020px;margin:24px auto;padding:0 16px 45px}.card{background:white;border:1px solid #dce7ef;border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:0 7px 22px #1b42610b}h1{font-size:1.45rem;margin:0 0 8px}h2{font-size:1.15rem;margin:0 0 12px}p{line-height:1.5;color:#52697b}label{display:block;font-weight:600;font-size:.91rem;margin:12px 0 6px}input,select{width:100%;border:1px solid #b9cbd9;border-radius:9px;padding:11px;font-size:16px;background:#fff;color:#18334b}button{border:0;background:#155a96;color:white;border-radius:9px;padding:11px 15px;font-weight:650;cursor:pointer;font-size:.94rem}button:disabled{opacity:.55;cursor:default}button.secondary{background:#e8f1f8;color:#184f7b}button.outline{background:transparent;border:1px solid #abc3d7;color:#17466e}.stack{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:13px}.metric{border:1px solid #dce7ef;border-radius:12px;padding:16px;background:#f9fcff}.metric b{font-size:1.7rem;display:block;margin-top:4px}.muted{font-size:.85rem;color:#647c8d}.pill{border-radius:100px;background:#e5f4eb;color:#13663b;padding:5px 9px;font-size:.8rem;font-weight:650}.pill.excluded{background:#f6eae2;color:#985325}#notice{min-height:28px;color:#174b73}#app,#passwordBox{display:none}.nav{display:flex;gap:8px;overflow-x:auto;margin-bottom:16px}.nav button{white-space:nowrap}.nav button.active{background:#123f6b;color:#fff}.hidden{display:none!important}.person{border-bottom:1px solid #edf1f5;padding:12px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}.person:last-child{border:0}.person b{display:block}.person small{color:#63788b}.person .right{text-align:right}.fieldrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.fieldrow button{align-self:end}.empty{padding:22px;text-align:center;color:#647c8d}.danger{color:#a34a34}.foot{font-size:.8rem;color:#647c8d;margin-top:16px}@media(max-width:520px){header{padding:15px}main{margin:16px auto}.card{padding:16px}.person{align-items:flex-start}.person .right{min-width:88px}}
+.hoursTable{border-collapse:collapse;width:100%;font-size:.88rem}.hoursTable th,.hoursTable td{border-bottom:1px solid #dce7ef;padding:10px;text-align:left;white-space:nowrap}.hoursTable th{background:#edf5fb}.card input[type=checkbox]{accent-color:#155a96}</style></head><body><header><div><strong>Control de Horarios</strong><small>Panel privado · Versión 0.6</small></div><button class="outline" id="logout" style="display:none;background:transparent;color:white;border-color:#9db9d0">Salir</button></header><main><p id="notice" role="status" aria-live="polite">Comprobando acceso…</p>
+<section id="login" class="card"><h1>Acceso seguro</h1><p>Inicia sesión con tu cuenta confirmada.</p><form id="loginForm"><label for="email">Correo</label><input type="email" id="email" autocomplete="username" required><label for="loginPassword">Contraseña</label><input type="password" id="loginPassword" autocomplete="current-password" required><button style="margin-top:16px" type="submit">Iniciar sesión</button></form></section>
+<section id="passwordBox" class="card"><h1>Establecer contraseña</h1><p>Utiliza al menos 12 caracteres.</p><form id="passwordForm"><label for="newPassword">Nueva contraseña</label><input id="newPassword" type="password" minlength="12" autocomplete="new-password" required><label for="confirmPassword">Confirmar contraseña</label><input id="confirmPassword" type="password" minlength="12" autocomplete="new-password" required><button style="margin-top:16px">Guardar contraseña</button></form></section>
+<section id="app"><div class="nav"><button data-tab="home" class="active">Resumen</button><button data-tab="employees" class="secondary">Empleados</button><button data-tab="periods" class="secondary">Períodos</button><button data-tab="records" class="secondary">Horas</button><button data-tab="documents" class="secondary">Archivos</button><button data-tab="assist" class="secondary">Lectura asistida</button></div>
+<div id="home" class="tab"><div class="card"><h1>Panel de administración</h1><p id="identity"></p><div class="grid"><div class="metric"><span class="muted">Empleados activos</span><b id="activeCount">—</b></div><div class="metric"><span class="muted">Excluidos</span><b id="excludedCount">—</b></div><div class="metric"><span class="muted">Equivalencias</span><b id="aliasCount">—</b></div><div class="metric"><span class="muted">Períodos</span><b id="periodCount">—</b></div></div><p class="foot">Esta versión permite registro manual, comparación de horas verificadas y carga privada de documentos. Incluye OCR local, reconstrucción de columnas y análisis experimental de filas con revisión de fechas y turnos antes de guardar.</p></div></div>
+<div id="employees" class="tab hidden"><div class="card"><h2>Catálogo de empleados</h2><div class="fieldrow"><div><label for="search">Buscar</label><input id="search" placeholder="Nombre o equivalencia"></div><div><label for="filter">Mostrar</label><select id="filter"><option value="active">Activos</option><option value="excluded">Excluidos</option><option value="all">Todos</option></select></div></div><div id="employeeList" style="margin-top:14px"></div></div><div id="adminEditor" class="card hidden"><h2>Agregar empleado</h2><form id="addEmployee"><div class="fieldrow"><div><label for="fullName">Nombre completo</label><input id="fullName" maxlength="120" required></div><div><label for="alias">Equivalencia opcional</label><input id="alias" maxlength="50" placeholder="Ej. WILL"></div><div><label for="empStatus">Estado</label><select id="empStatus"><option value="active">Activo</option><option value="excluded">Excluido</option></select></div></div><button style="margin-top:14px">Guardar empleado</button></form><p class="foot">Los empleados existentes no se eliminan automáticamente. Para cambiar exclusiones, revisaremos un flujo con confirmación y auditoría.</p></div></div>
+<div id="periods" class="tab hidden"><div class="card"><h2>Períodos de trabajo</h2><div id="periodList"></div></div><div id="periodEditor" class="card hidden"><h2>Crear período</h2><form id="addPeriod"><div class="fieldrow"><div><label for="periodName">Nombre</label><input id="periodName" placeholder="Primera quincena de octubre" maxlength="120" required></div><div><label for="startDate">Desde</label><input type="date" id="startDate" required></div><div><label for="endDate">Hasta</label><input type="date" id="endDate" required></div></div><button style="margin-top:14px">Crear período</button></form><p class="foot">Los períodos sirven para organizar turnos, firmas y documentos.</p></div></div>
+
+<div id="records" class="tab hidden"><div class="card"><h2>Registro manual de horarios y firmas</h2><p>Ingresa una jornada por empleado y fecha. Los turnos nocturnos que terminan al día siguiente se reconocen automáticamente. Las horas de comida no se descuentan.</p><form id="recordForm" class="hidden"><div class="fieldrow"><div><label for="recPeriod">Período</label><select id="recPeriod" required></select></div><div><label for="recEmployee">Empleado activo</label><select id="recEmployee" required></select></div><div><label for="recType">Origen</label><select id="recType"><option value="shifts">Horario programado</option><option value="attendance">Hoja de firmas</option></select></div><div><label for="recDate">Fecha de inicio</label><input type="date" id="recDate" required></div><div><label for="recStart">Entrada</label><input type="time" id="recStart"></div><div><label for="recEnd">Salida</label><input type="time" id="recEnd"></div></div><label><input id="recApproved" type="checkbox" style="width:auto;margin-right:8px">He revisado el registro contra el documento original (aprobar)</label><label id="recOcrReviewBox" class="hidden"><input id="recOcrValidated" type="checkbox" style="width:auto;margin-right:8px">He contrastado esta propuesta OCR con el original y validado empleado, fecha, período y horas, aunque la jornada quede pendiente.</label><button type="submit">Guardar registro</button></form><p id="recHint" class="muted"></p></div><div class="card"><h2>Comparación de horas</h2><div class="fieldrow"><div><label for="comparePeriod">Período</label><select id="comparePeriod"></select></div><div><label for="compareEmployee">Empleado</label><select id="compareEmployee"></select></div></div><div id="comparison" style="overflow-x:auto;margin-top:14px"></div><button id="exportCsv" type="button" class="secondary" style="margin-top:12px">Exportar CSV para Excel</button><p class="foot">Solo se calculan diferencias cuando existen horarios y firmas completos y aprobados. Los registros pendientes se identifican, no se convierten en cero. CSV compatible con Excel; el formato XLSX llegará después.</p></div></div>
+<div id="documents" class="tab hidden"><div class="card"><h2>Documentos privados</h2><p>Guarda PDF o fotografías de horarios y firmas en el almacenamiento privado. La pestaña Lectura asistida permite extraer y revisar datos localmente antes de guardarlos.</p><form id="uploadForm" class="hidden"><div class="fieldrow"><div><label for="docPeriod">Período (opcional)</label><select id="docPeriod"></select></div><div><label for="docType">Tipo</label><select id="docType"><option value="schedule">Horario</option><option value="attendance">Hoja de firmas</option></select></div><div><label for="docFile">Archivo PDF o imagen (máx. 50 MB)</label><input id="docFile" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required></div></div><button type="submit">Subir documento</button></form><div id="docList" style="margin-top:14px"></div></div></div>
+
+<div id="assist" class="tab hidden"><div class="card"><h2>Lectura asistida · revisión obligatoria</h2><p>Permite extraer texto de PDF y usar OCR experimental en imágenes o PDF escaneados. <strong>Las tablas, cifras y manuscritos pueden interpretarse mal.</strong> Ningún dato se guarda automáticamente.</p>
+<div class="fieldrow"><div><label for="assistFile">PDF o imagen local</label><input id="assistFile" type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></div><div><label for="assistType">Tipo de registro</label><select id="assistType"><option value="shifts">Horario programado</option><option value="attendance">Hoja de firmas</option></select></div></div>
+<div class="stack" style="margin-top:12px"><button type="button" id="extractPdf">Extraer texto del PDF</button><button type="button" id="runOcr" class="secondary">Reconocer imagen / PDF (OCR)</button><button type="button" class="secondary" id="cancelAssist" disabled>Cancelar lectura</button><button type="button" class="secondary" id="clearAssist">Limpiar lectura</button></div><p id="assistStatus" class="muted" role="status"></p><p id="assistCoverage" class="muted" role="status"></p><progress id="ocrProgress" max="100" value="0" style="display:none;width:100%"></progress><div id="assistPreview" style="max-width:100%;overflow:auto"></div>
+<label for="assistText">Texto extraído o transcripción manual</label><textarea id="assistText" rows="8" style="width:100%;border:1px solid #b9cbd9;border-radius:9px;padding:11px;font:inherit" placeholder="Ej.: WILL 10/11/2026 08:00 16:00"></textarea>
+<p class="foot">El texto de un PDF puede venir desordenado. Verifica siempre fechas, nombres, horas y la página original. OCR experimental: los datos se procesan localmente en el dispositivo, pero las bibliotecas y modelos se descargan desde servidores externos al usarlos. Se requiere conexión la primera vez. Verifica visualmente todas las propuestas, especialmente columnas y fechas.</p>
+<div class="card" style="background:#f6faff;margin-top:14px"><h2>Interpretar filas del horario (experimental)</h2><p>Detecta nombres y expresiones como 6-3, 7-4, 8-5, 4-12 y 5-12. <strong>La vista por columnas utiliza posiciones del OCR; confirma los días y fechas antes de trasladar cualquier propuesta.</strong> Cada propuesta requiere asignar la fecha correcta mirando la imagen original. Las horas y el empleado también son editables.</p><button type="button" id="analyzeRows">Analizar filas y turnos</button><p class="foot">Los nombres excluidos se muestran como referencia, pero no pueden enviarse al registro. No se guarda nada automáticamente.</p></div><button type="button" id="findCandidates">Buscar jornadas con fecha explícita</button></div>
+<div class="card"><h2>Reconstrucción visual de columnas · experimental</h2><p>Separa las palabras por posición horizontal, conserva la fila de origen y permite asignar manualmente las fechas de las columnas. Los límites son estimaciones: comprueba cada propuesta con la imagen.</p><div class="stack"><button type="button" id="buildGrid">Reconstruir columnas OCR</button><button type="button" id="clearGrid" class="secondary">Limpiar tabla</button></div><div id="gridStatus" class="muted" role="status"></div><div id="gridDates" class="fieldrow"></div><div id="gridCandidates" style="overflow-x:auto"></div></div><div class="card"><h2>Posibles jornadas (sin guardar)</h2><p class="muted">Selecciona una propuesta y confirma los datos en la pestaña Horas. Si hay dudas, deja el registro pendiente.</p><div id="assistCandidates" class="empty">Aún no se ha analizado texto.</div></div><div class="card"><h2>Propuestas de filas · fechas por verificar</h2><div id="rowCandidates" class="empty">Pulsa «Analizar filas y turnos» después del OCR.</div></div></div>
+</section></main><script type="module">
+import { rowNormalize, scanRowNames, readShiftTokens, buildPageGrid, parseColumnCenters } from './src/ocr-layout.js';
+import { DocumentSession, imageDimensions } from './src/document-session.js';
+import { csvCell } from './src/csv.js';
+import { localStamp, nextDate, fmt, aggregate } from './src/hours.js';
+import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/+esm';
+const sb=createClient('https://zuvxvymkfacuamdxcplt.supabase.co','sb_publishable_HuqvLrf1E2s2xdIA6QWrrw_k8Nlzqsl',{auth:{detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}});
+const $=id=>document.getElementById(id);let privateRevision=0;let me=null,profile=null,employees=[],aliases=[],periods=[],shifts=[],attendance=[],documents=[];const setNotice=s=>{$('notice').textContent=s};
+function show(mode){$('login').style.display=mode==='login'?'block':'none';$('passwordBox').style.display=mode==='password'?'block':'none';$('app').style.display=mode==='app'?'block':'none';$('logout').style.display=mode==='app'?'block':'none'}
+function elem(tag,txt,cls){const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(cls)e.className=cls;return e}
+async function read(table,columns='*'){const{data,error}=await sb.from(table).select(columns);if(error)throw new Error(`${table}: ${error.message}`);return data||[]}
+async function initialize(){
+ const revision=privateRevision;const {data:{user},error}=await sb.auth.getUser();if(revision!==privateRevision)return;
+ if(error||!user){resetPrivateState();show('login');setNotice('Inicia sesión para continuar.');return}
+ const {data,error:pe}=await sb.from('profiles').select('user_id,role,display_name').eq('user_id',user.id).maybeSingle();if(revision!==privateRevision)return;if(pe)throw pe;
+ if(!data){resetPrivateState();show('login');setNotice('Cuenta autenticada, pero sin perfil autorizado. Contacta al administrador.');return}
+ me=user;profile=data;await refresh(revision);if(revision!==privateRevision)return;show('app');$('identity').textContent=`Cuenta: ${user.email} · Rol: ${profile.role}`;
+ $('adminEditor').classList.toggle('hidden',profile.role!=='admin');for(const id of ['periodEditor','recordForm','uploadForm'])$(id).classList.toggle('hidden',!['admin','editor'].includes(profile.role));setNotice('Sesión validada. Información privada cargada.');
+}
+async function refresh(revision=privateRevision){
+ if(!me||!profile)return;const data=await Promise.all([read('employees','id,full_name,status,exclusion_reason'),read('employee_aliases','employee_id,alias'),read('periods','id,name,starts_on,ends_on')]);
+ if(revision!==privateRevision||!me||!profile)return;[employees,aliases,periods]=data;
+ employees.sort((a,b)=>a.full_name.localeCompare(b.full_name,'es'));periods.sort((a,b)=>b.starts_on.localeCompare(a.starts_on));$('activeCount').textContent=employees.filter(e=>e.status==='active').length;$('excludedCount').textContent=employees.filter(e=>e.status==='excluded').length;$('aliasCount').textContent=aliases.length;$('periodCount').textContent=periods.length;renderEmployees();renderPeriods();await refreshRecords(revision);
+}
+function renderEmployees(){const target=$('employeeList');target.replaceChildren();const search=$('search').value.trim().toLocaleLowerCase('es'),filter=$('filter').value;const list=employees.filter(e=>(filter==='all'||e.status===filter)&&(`${e.full_name} ${aliases.filter(a=>a.employee_id===e.id).map(a=>a.alias).join(' ')}`).toLocaleLowerCase('es').includes(search));if(!list.length){target.append(elem('p','No hay empleados para este filtro.','empty'));return}for(const e of list){const row=elem('div',undefined,'person'),left=elem('div'),right=elem('div',undefined,'right');left.append(elem('b',e.full_name));const als=aliases.filter(a=>a.employee_id===e.id).map(a=>a.alias);if(als.length)left.append(elem('small','Equivalencia: '+als.join(', ')));if(e.exclusion_reason)left.append(elem('small',' · '+e.exclusion_reason));right.append(elem('span',e.status==='active'?'Activo':'Excluido','pill'+(e.status==='excluded'?' excluded':'')));row.append(left,right);target.append(row)}}
+function renderPeriods(){const t=$('periodList');t.replaceChildren();if(!periods.length){t.append(elem('p','Todavía no hay períodos registrados.','empty'));return}for(const p of periods){const row=elem('div',undefined,'person');row.append(elem('b',p.name));row.append(elem('small',`${p.starts_on} — ${p.ends_on}`));t.append(row)}}
+$('search').addEventListener('input',renderEmployees);$('filter').addEventListener('change',renderEmployees);document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-tab]').forEach(x=>{x.classList.remove('active');x.classList.add('secondary')});b.classList.add('active');b.classList.remove('secondary');document.querySelectorAll('.tab').forEach(t=>t.classList.add('hidden'));$(b.dataset.tab).classList.remove('hidden')}));
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();setNotice('Verificando credenciales…');const{error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('loginPassword').value});$('loginPassword').value='';if(error){setNotice('No se pudo iniciar sesión: '+error.message);return}try{await initialize()}catch(err){setNotice('No se pudo cargar el panel: '+err.message)}});
+$('passwordForm').addEventListener('submit',async e=>{e.preventDefault();const a=$('newPassword').value,b=$('confirmPassword').value;if(a!==b){setNotice('Las contraseñas no coinciden.');return}const{error}=await sb.auth.updateUser({password:a});if(error){setNotice(error.message);return}history.replaceState(null,'',location.pathname);await initialize()});
+$('logout').addEventListener('click',async()=>{const {error}=await sb.auth.signOut();if(error){setNotice('No se pudo cerrar sesión: '+error.message);return}resetPrivateState();show('login');setNotice('Sesión cerrada.')});
+$('addEmployee').addEventListener('submit',async e=>{e.preventDefault();if(profile?.role!=='admin')return;const name=$('fullName').value.trim(),alias=$('alias').value.trim().toUpperCase(),status=$('empStatus').value;if(!name)return;const{data,error}=await sb.from('employees').insert({full_name:name,status,exclusion_reason:status==='excluded'?'Pendiente de especificar':null}).select('id').single();if(error){setNotice('No se pudo agregar: '+error.message);return}if(alias){const{error:ae}=await sb.from('employee_aliases').insert({employee_id:data.id,alias});if(ae)setNotice('Empleado guardado, pero la equivalencia falló: '+ae.message);else setNotice('Empleado y equivalencia guardados.')}else setNotice('Empleado guardado.');e.target.reset();try{await refresh()}catch(err){setNotice(err.message)}});
+$('addPeriod').addEventListener('submit',async e=>{e.preventDefault();if(!['admin','editor'].includes(profile?.role))return;const starts_on=$('startDate').value,ends_on=$('endDate').value;if(ends_on<starts_on){setNotice('La fecha final no puede ser anterior a la inicial.');return}const{error}=await sb.from('periods').insert({name:$('periodName').value.trim(),starts_on,ends_on,created_by:me.id});if(error){setNotice('No se pudo crear el período: '+error.message);return}e.target.reset();setNotice('Período creado.');await refresh()});
+
+function setOptions(id,items,placeholder){const sel=$(id),old=sel.value;sel.replaceChildren();if(placeholder){const o=elem('option',placeholder);o.value='';sel.append(o)}for(const [value,label] of items){const o=elem('option',label);o.value=value;sel.append(o)}if([...sel.options].some(o=>o.value===old))sel.value=old}
+function labelEmployee(id){return employees.find(e=>e.id===id)?.full_name||'Empleado desconocido'}
+async function refreshRecords(revision=privateRevision){if(!me||!profile)return;const data=await Promise.all([read('shifts','id,period_id,employee_id,work_date,starts_at,ends_at,review_status'),read('attendance','id,period_id,employee_id,work_date,starts_at,ends_at,review_status'),read('documents','id,period_id,document_type,original_name,storage_path,created_at')]);if(revision!==privateRevision||!me||!profile)return;[shifts,attendance,documents]=data;const pp=periods.map(p=>[p.id,`${p.name} (${p.starts_on} a ${p.ends_on})`]);const ee=employees.filter(e=>e.status==='active').map(e=>[e.id,e.full_name]);for(const id of ['recPeriod','comparePeriod'])setOptions(id,pp,'Selecciona período');for(const id of ['recEmployee','compareEmployee'])setOptions(id,ee,'Selecciona empleado');setOptions('docPeriod',pp,'Sin período');$('recHint').textContent=pp.length?'La fecha debe pertenecer al período seleccionado. Para firmas ilegibles, deja el campo sin completar y mantén pendiente.':'Primero crea un período en la pestaña Períodos.';renderComparison();renderDocs()}
+$('recType').addEventListener('change',()=>{const attendanceMode=$('recType').value==='attendance';$('recStart').required=!attendanceMode;$('recEnd').required=!attendanceMode});$('recType').dispatchEvent(new Event('change'));
+let recordOcrSource=null,recordSaving=false;
+function clearRecordSource(){recordOcrSource=null;$('recOcrValidated').checked=false;$('recOcrValidated').required=false;$('recOcrReviewBox').classList.add('hidden')}
+$('recordForm').addEventListener('reset',clearRecordSource);
+for(const event of ['input','change'])$('recordForm').addEventListener(event,e=>{if(recordOcrSource&&e.target.id!=='recOcrValidated')$('recOcrValidated').checked=false});
+function prepareOcrRecord({employeeId,date,start,end,kind,revision}){
+ if(revision!==readingSession.revision){setNotice('Esta propuesta pertenece a una lectura descartada. Analiza el documento actual.');return}
+ document.querySelector('[data-tab="records"]').click();$('recordForm').reset();
+ $('recType').value=kind;$('recType').dispatchEvent(new Event('change'));
+ $('recDate').value=date;$('recStart').value=start;$('recEnd').value=end;$('recEmployee').value=employeeId||'';$('recApproved').checked=false;
+ recordOcrSource={revision};$('recOcrReviewBox').classList.remove('hidden');$('recOcrValidated').required=true;
+ setNotice('Propuesta sin guardar. Selecciona período y empleado, contrasta con el original y marca la validación OCR.');$('recordForm').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('recordForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(recordSaving||!['admin','editor'].includes(profile?.role))return;
+ if(recordOcrSource&&(recordOcrSource.revision!==readingSession.revision||!$('recOcrValidated').checked)){setNotice('Valida expresamente la propuesta OCR contra el original antes de guardar.');return}
+ const period=periods.find(p=>p.id===$('recPeriod').value),employee=employees.find(x=>x.id===$('recEmployee').value),date=$('recDate').value,kind=$('recType').value,st=$('recStart').value,en=$('recEnd').value;
+ if(!['shifts','attendance'].includes(kind)||!validDate(date)||!period||!employee||employee.status!=='active'||date<period.starts_on||date>period.ends_on){setNotice('Selecciona empleado activo y una fecha dentro del período.');return}
+ if((!st||!en)&&kind==='shifts'){setNotice('El horario programado necesita entrada y salida.');return}
+ if($('recApproved').checked&&(!st||!en)){setNotice('No puedes aprobar un registro con horas incompletas.');return}
+ const starts_at=st?localStamp(date,st):null,ends_at=en?localStamp(st&&en<=st?nextDate(date):date,en):null;
+ const equalStamp=(a,b)=>a==null&&b==null||a!=null&&b!=null&&new Date(a).getTime()===new Date(b).getTime();
+ if((kind==='shifts'?shifts:attendance).some(r=>r.period_id===period.id&&r.employee_id===employee.id&&r.work_date===date&&equalStamp(r.starts_at,starts_at)&&equalStamp(r.ends_at,ends_at))){setNotice('Ya existe un registro con ese empleado, fecha y horas. No se ha duplicado.');return}
+ const obj={period_id:period.id,employee_id:employee.id,work_date:date,starts_at,ends_at,review_status:$('recApproved').checked?'approved':'pending'};
+ const button=e.target.querySelector('button[type="submit"]');recordSaving=true;button.disabled=true;
+ try{const {error}=await sb.from(kind).insert(obj);if(error)throw error;e.target.reset();$('recType').dispatchEvent(new Event('change'));setNotice('Registro guardado.');await refreshRecords()}
+ catch(err){setNotice('No se pudo completar el guardado. Revisa los registros antes de reintentar: '+err.message)}
+ finally{recordSaving=false;button.disabled=false}
+});
+
+let currentComparison=[];
+function renderComparison(){const box=$('comparison'),p=$('comparePeriod').value,emp=$('compareEmployee').value;box.replaceChildren();currentComparison=[];if(!p||!emp){box.append(elem('p','Selecciona un período y un empleado.','muted'));return}const s=aggregate(shifts.filter(r=>r.period_id===p&&r.employee_id===emp)),a=aggregate(attendance.filter(r=>r.period_id===p&&r.employee_id===emp));const dates=[...new Set([...s.keys(),...a.keys()].map(k=>k.split('|')[1]))].sort();if(!dates.length){box.append(elem('p','Todavía no hay registros para esta selección.','muted'));return}const table=elem('table');table.className='hoursTable';const head=elem('tr');for(const name of ['Fecha','Programadas','Firmadas','Diferencia','Estado'])head.append(elem('th',name));table.append(head);for(const date of dates){const k=`${emp}|${date}`,x=s.get(k),y=a.get(k),valid=x?.valid&&y?.valid&&x.count>0&&y.count>0;const row={fecha:date,empleado:labelEmployee(emp),programadas:x?.valid?fmt(x.total):'',firmadas:y?.valid?fmt(y.total):'',diferencia:valid?fmt(y.total-x.total):'',estado:valid?'Verificado':x?.conflict||y?.conflict?'Duplicado / solapado':'Pendiente / incompleto',programadasHoras:x?.total,firmadasHoras:y?.total};currentComparison.push(row);const tr=elem('tr');for(const key of ['fecha','programadas','firmadas','diferencia','estado'])tr.append(elem('td',row[key]||'—'));table.append(tr)}box.append(table);const good=currentComparison.filter(r=>r.estado==='Verificado');const totals=good.reduce((v,r)=>{v[0]+=r.programadasHoras;v[1]+=r.firmadasHoras;return v},[0,0]);box.append(elem('p',`Jornadas verificadas: ${good.length} de ${currentComparison.length} · Programadas: ${fmt(totals[0])} h · Firmadas: ${fmt(totals[1])} h · Diferencia: ${fmt(totals[1]-totals[0])} h`,'muted'))}
+$('comparePeriod').addEventListener('change',renderComparison);$('compareEmployee').addEventListener('change',renderComparison);
+$('exportCsv').addEventListener('click',()=>{if(!currentComparison.length){setNotice('No hay registros para exportar.');return}const cols=['fecha','empleado','programadas','firmadas','diferencia','estado'];const esc=csvCell;const csv='\uFEFF'+[cols.join(';'),...currentComparison.map(r=>cols.map(k=>esc(['programadas','firmadas','diferencia'].includes(k)&&r[k]!==''?Number(r[k]):r[k])).join(';'))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='control-horarios-comparacion.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+function renderDocs(){const t=$('docList');t.replaceChildren();if(!documents.length){t.append(elem('p','Aún no hay archivos cargados.','muted'));return}for(const d of [...documents].sort((a,b)=>b.created_at.localeCompare(a.created_at))){const row=elem('div',undefined,'person'),left=elem('div');left.append(elem('b',d.original_name));left.append(elem('small',`${d.document_type==='schedule'?'Horario':'Firmas'} · ${new Date(d.created_at).toLocaleDateString('es-PA')}`));const btn=elem('button','Abrir','secondary');btn.addEventListener('click',async()=>{const{data,error}=await sb.storage.from('control-horarios-private').createSignedUrl(d.storage_path,60);if(error){setNotice('No se pudo abrir el archivo: '+error.message);return}window.open(data.signedUrl,'_blank','noopener,noreferrer')});row.append(left,btn);t.append(row)}}
+$('uploadForm').addEventListener('submit',async e=>{e.preventDefault();if(!['admin','editor'].includes(profile?.role))return;const file=$('docFile').files[0],allowed=['application/pdf','image/jpeg','image/png','image/webp'];if(!file||!allowed.includes(file.type)||file.size>50*1024*1024){setNotice('Selecciona PDF/JPG/PNG/WebP de hasta 50 MB.');return}const ext={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type],path=`${me.id}/${crypto.randomUUID()}.${ext}`;setNotice('Subiendo documento…');const{error:uploadError}=await sb.storage.from('control-horarios-private').upload(path,file,{contentType:file.type,upsert:false});if(uploadError){setNotice('No se pudo subir: '+uploadError.message);return}const {error}=await sb.from('documents').insert({period_id:$('docPeriod').value||null,document_type:$('docType').value,storage_path:path,original_name:file.name,uploaded_by:me.id});if(error){setNotice('Archivo subido, pero falló su registro. No vuelvas a subirlo; contacta al administrador. '+error.message);return}e.target.reset();setNotice('Documento privado registrado correctamente.');await refreshRecords()});
+
+
+// Reading state is transient and belongs to one document only.
+const readingSession=new DocumentSession();
+let assistObjectUrl=null,ocrPositionPages=[],ocrScriptPromise=null;
+function assistMessage(message){$('assistStatus').textContent=message}
+function clearAssistPreview(){if(assistObjectUrl){URL.revokeObjectURL(assistObjectUrl);assistObjectUrl=null}$('assistPreview').replaceChildren()}
+function clearReadingResults(){
+ ocrPositionPages=[];$('assistText').value='';$('assistCoverage').textContent='';
+ for(const id of ['assistCandidates','rowCandidates','gridCandidates','gridDates'])$(id).replaceChildren();
+ $('gridStatus').textContent='';
+ if(recordOcrSource)$('recordForm').reset();
+}
+function readingButtons(busy){$('runOcr').disabled=busy;$('extractPdf').disabled=busy;$('cancelAssist').disabled=!busy;$('ocrProgress').style.display=busy?'block':'none'}
+function resetAssist(clearFile=true){void readingSession.cancel();clearReadingResults();clearAssistPreview();readingButtons(false);if(clearFile)$('assistFile').value=''}
+function resetPrivateState(){
+ privateRevision++;resetAssist();me=null;profile=null;employees=[];aliases=[];periods=[];shifts=[];attendance=[];documents=[];currentComparison=[];
+ for(const id of ['employeeList','periodList','comparison','docList','identity'])$(id).replaceChildren();
+ for(const id of ['recEmployee','compareEmployee','recPeriod','comparePeriod','docPeriod'])$(id).replaceChildren();
+ for(const id of ['activeCount','excludedCount','aliasCount','periodCount'])$(id).textContent='—';
+ for(const id of ['recordForm','uploadForm','addEmployee','addPeriod','passwordForm','loginForm'])$(id).reset();
+}
+$('assistFile').addEventListener('change',()=>{
+ resetAssist(false);const f=$('assistFile').files[0];if(!f){assistMessage('Selecciona un documento.');return}
+ if(!validAssistFile(f))return;
+ assistObjectUrl=URL.createObjectURL(f);
+ if(f.type.startsWith('image/')){const img=elem('img');img.src=assistObjectUrl;img.alt='Documento seleccionado para revisión manual';img.style.cssText='max-width:100%;max-height:550px;object-fit:contain;border-radius:8px';$('assistPreview').append(img)}
+ else{const link=elem('a','Abrir PDF original para revisión');link.href=assistObjectUrl;link.target='_blank';link.rel='noopener noreferrer';$('assistPreview').append(link)}
+ assistMessage('Documento seleccionado. Extrae texto del PDF o ejecuta OCR. La lectura anterior fue descartada.');
+});
+$('clearAssist').addEventListener('click',()=>{resetAssist();assistMessage('Lectura y propuestas descartadas.')});
+$('cancelAssist').addEventListener('click',()=>{void readingSession.cancel();clearReadingResults();readingButtons(false);assistMessage('Lectura cancelada. No se guardó ningún dato.')});
+function validAssistFile(file){if(!['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type)||file.size>50*1024*1024){assistMessage('Selecciona PDF/JPG/PNG/WebP de hasta 50 MB.');return false}return true}
+async function pdfLibrary(){const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs');pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';return pdfjs}
+function loadOcrScript(){
+ if(window.Tesseract)return Promise.resolve();if(ocrScriptPromise)return ocrScriptPromise;
+ ocrScriptPromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';script.onload=resolve;script.onerror=()=>{script.remove();ocrScriptPromise=null;reject(new Error('No se pudo cargar el motor OCR. Comprueba la conexión.'))};document.head.append(script)});return ocrScriptPromise;
+}
+async function ocrCanvasFromImage(file){
+ const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');
+ try{const size=imageDimensions(bitmap.width,bitmap.height);canvas.width=size.width;canvas.height=size.height;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);return canvas}finally{bitmap.close()}
+}
+function startReading(){const job=readingSession.begin();clearReadingResults();readingButtons(true);$('ocrProgress').value=0;return job}
+function setCoverage(pdf,limit=8){const count=Math.min(pdf.numPages,limit);$('assistCoverage').textContent=pdf.numPages>count?`Documento parcial: se leerán ${count} de ${pdf.numPages} páginas. Divide el PDF para revisar las restantes.`:`Documento de ${pdf.numPages} página(s).`;return count}
+$('extractPdf').addEventListener('click',async()=>{
+ const file=$('assistFile').files[0];if(!file||file.type!=='application/pdf'||!validAssistFile(file)){assistMessage('Selecciona un PDF válido.');return}
+ const job=startReading();
+ try{
+  assistMessage('Extrayendo texto local del PDF…');const pdfjs=await job.wait(pdfLibrary());job.check();const bytes=new Uint8Array(await job.wait(file.arrayBuffer()));job.check();
+  const loading=job.attach(pdfjs.getDocument({data:bytes}),'destroy');const pdf=await job.wait(loading.promise);job.check();const count=setCoverage(pdf,pdf.numPages),lines=[];
+  for(let number=1;number<=count;number++){
+   job.check();const page=await job.wait(pdf.getPage(number));
+   try{const content=await job.wait(page.getTextContent());job.check();const rows=new Map();for(const item of content.items){if(!item.str?.trim())continue;const y=Math.round(item.transform?.[5]||0);if(!rows.has(y))rows.set(y,[]);rows.get(y).push({x:item.transform?.[4]||0,text:item.str})}lines.push('--- Página '+number+' ---');for(const [,parts]of [...rows.entries()].sort((a,b)=>b[0]-a[0]))lines.push(parts.sort((a,b)=>a.x-b.x).map(i=>i.text).join(' '));$('ocrProgress').value=Math.round(number/count*100)}finally{page.cleanup()}
+  }
+  job.check();$('assistText').value=lines.join('\n');assistMessage('Texto extraído. Revisa el original; para reconstruir columnas ejecuta OCR. No se guardó nada.');
+ }catch(err){if(job.isCurrent())assistMessage('No se pudo extraer texto: '+err.message)}
+ finally{const current=job.isCurrent();await readingSession.finish(job);if(current&&!readingSession.current)readingButtons(false)}
+});
+$('runOcr').addEventListener('click',async()=>{
+ const file=$('assistFile').files[0];if(!file||!validAssistFile(file)){assistMessage('Selecciona un documento válido.');return}
+ const job=startReading();
+ try{
+  assistMessage('Preparando OCR local y modelos de idioma…');await job.wait(loadOcrScript());job.check();
+  const worker=await job.wait(window.Tesseract.createWorker('spa+eng',1,{logger:m=>{if(job.isCurrent()&&m.status==='recognizing text'&&typeof m.progress==='number')$('ocrProgress').value=Math.round(m.progress*100)}}).then(value=>job.attach(value,'terminate')));job.check();
+  let pdf=null,count=1;
+  if(file.type==='application/pdf'){const pdfjs=await job.wait(pdfLibrary());job.check();const bytes=new Uint8Array(await job.wait(file.arrayBuffer()));job.check();const loading=job.attach(pdfjs.getDocument({data:bytes}),'destroy');pdf=await job.wait(loading.promise);job.check();count=setCoverage(pdf)}
+  const outputs=[],positions=[];
+  for(let number=1;number<=count;number++){
+   job.check();let page=null,canvas=null;
+   try{
+    if(pdf){page=await job.wait(pdf.getPage(number));job.check();const natural=page.getViewport({scale:1});const size=imageDimensions(natural.width,natural.height);const viewport=page.getViewport({scale:Math.min(size.width/natural.width,size.height/natural.height)});canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);const render=page.render({canvasContext:canvas.getContext('2d'),viewport});job.attach(render,'cancel');await job.wait(render.promise);job.check()}
+    else{canvas=await job.wait(ocrCanvasFromImage(file).then(value=>{if(!job.isCurrent()){value.width=0;value.height=0;job.check()}return value}));job.check()}
+    assistMessage(`Reconociendo página ${number} de ${count}…`);$('ocrProgress').value=0;
+    const {data}=await job.wait(worker.recognize(canvas,{}, {text:true,tsv:true,blocks:true}));job.check();
+    positions.push({page:number,tsv:data.tsv||'',blocks:data.blocks||[],width:canvas.width,height:canvas.height});outputs.push(`--- Página ${number} · OCR experimental ---\n${data.text||''}`);
+   }finally{if(canvas){canvas.width=0;canvas.height=0}if(page)page.cleanup()}
+  }
+  job.check();ocrPositionPages=positions;$('assistText').value=outputs.join('\n\n');assistMessage(`OCR completado: ${outputs.length} página(s). Reconstruye columnas o analiza filas y revisa contra el original. No se guardó ningún registro.`);
+ }catch(err){if(job.isCurrent()){clearReadingResults();assistMessage('No se pudo completar OCR: '+err.message+' Puedes transcribir manualmente.')}}
+ finally{const current=job.isCurrent();await readingSession.finish(job);if(current&&!readingSession.current)readingButtons(false)}
+});
+function findPerson(line){const hits=scanRowNames(line,rowRoster()).found;const ids=new Set(hits.map(h=>h.employee.id));if(ids.size!==1||hits.some(h=>h.ambiguous)||hits[0]?.employee.status!=='active')return null;const employee=hits[0].employee;return {id:employee.id,name:employee.full_name}}
+function parseDate(text){let m=text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=`${m[1]}-${m[2]}-${m[3]}`;return validDate(d)?d:null}m=text.match(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\b/);if(m){const d=`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return validDate(d)?d:null}return null}
+function validDate(s){const d=new Date(s+'T12:00:00Z');return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===s}
+function parseTimes(text){const m=[...text.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g)];return m.slice(0,2).map(x=>x[1].padStart(2,'0')+':'+x[2])}
+
+// v0.6: candidatos de filas, NO reconstrucción automática de columnas.
+function rowRoster(){
+ const entries=[];
+ for(const e of employees){
+  const variants=[e.full_name,...aliases.filter(a=>a.employee_id===e.id).map(a=>a.alias)];
+  for(const raw of variants){const name=rowNormalize(raw);if(name.length>=3)entries.push({name,employee:e})}
+ }
+ // Excluded staff can be present in the OCR even if not yet loaded in employee aliases.
+ return entries.sort((a,b)=>b.name.length-a.name.length);
+}
+$('analyzeRows').addEventListener('click',()=>{
+ const root=$('rowCandidates');root.replaceChildren();const roster=rowRoster(),revision=readingSession.revision,kind=$('assistType').value;let count=0,excluded=0;
+ const lines=$('assistText').value.split(/\r?\n/).map(v=>v.trim()).filter(v=>v&&!v.startsWith('---'));
+ for(let lineNo=0;lineNo<lines.length;lineNo++){
+  const {norm,found}=scanRowNames(lines[lineNo],roster);
+  for(let j=0;j<found.length;j++){
+   const hit=found[j],fragment=norm.slice(hit.end,found[j+1]?.at??norm.length);
+   for(const shift of readShiftTokens(fragment)){if(count>=150)break;
+   count++;if(hit.employee.status!=='active')excluded++;
+   const card=elem('div',undefined,'metric');card.style.marginBottom='10px';
+   const title=elem('b',hit.employee.full_name+' · '+shift.key+' · '+(hit.employee.status==='active'?'Activo':'Excluido'));
+   const note=elem('small','Fila OCR '+(lineNo+1)+' · columna/día no determinados');note.style.display='block';
+   const fields=elem('div',undefined,'fieldrow');
+   const dateWrap=elem('div'),dateLabel=elem('label','Fecha del documento (obligatoria)'),dateInput=elem('input');dateInput.type='date';dateWrap.append(dateLabel,dateInput);
+   const startWrap=elem('div'),startLabel=elem('label','Entrada'),startInput=elem('input');startInput.type='time';startInput.value=shift.start;startWrap.append(startLabel,startInput);
+   const endWrap=elem('div'),endLabel=elem('label','Salida'),endInput=elem('input');endInput.type='time';endInput.value=shift.end;endWrap.append(endLabel,endInput);
+   fields.append(dateWrap,startWrap,endWrap);
+   const action=elem('button',hit.employee.status==='active'?'Revisar en Horas':'Excluido · no registrar','secondary');action.type='button';action.disabled=hit.employee.status!=='active'||hit.ambiguous;if(hit.ambiguous)action.textContent='Empleado ambiguo · registro manual';
+   action.addEventListener('click',()=>{
+    if(!dateInput.value||!validDate(dateInput.value)){assistMessage('Asigna una fecha válida a esta propuesta mirando la columna del documento original.');dateInput.focus();return}
+    if(!startInput.value||!endInput.value){assistMessage('Completa entrada y salida.');return}
+    prepareOcrRecord({employeeId:hit.employee.id,date:dateInput.value,start:startInput.value,end:endInput.value,kind,revision});
+   });
+   card.append(title,note,fields,action);root.append(card);
+   }
+   if(count>=150)break;
+  }
+  if(count>=150)break;
+ }
+ if(!count)root.append(elem('p','No se reconocieron turnos confirmados junto a empleados. Corrige el texto OCR o utiliza el formulario manual.','muted'));
+ assistMessage(`${count} propuesta(s) de turno; ${excluded} de personal excluido. Fechas sin asignar; no se guardó nada.`);
+});
+
+
+// Geometry is independent of the DOM and is covered by regression fixtures.
+function buildGrid(){
+ const root=$('gridCandidates'),dates=$('gridDates');root.replaceChildren();dates.replaceChildren();
+ if(!ocrPositionPages.length){$('gridStatus').textContent='No hay coordenadas de la lectura actual. Ejecuta OCR para reconstruir columnas.';return}
+ const roster=rowRoster(),revision=readingSession.revision,kind=$('assistType').value;let total=0;
+ for(const page of ocrPositionPages){
+  const section=elem('section'),dateSection=elem('div',undefined,'fieldrow');dateSection.style.gridColumn='1 / -1';root.append(section);dates.append(dateSection);
+  function render(centers){
+   section.replaceChildren();dateSection.replaceChildren();const grid=buildPageGrid(page,roster,centers);let proposals=0,excluded=0;
+   section.append(elem('h3',`Página ${page.page} · ${grid.centers.length} columnas`));
+   section.append(elem('p',grid.source==='headers'?'Columnas sugeridas por encabezados; confirma las fechas.':grid.source==='manual'?'Columnas ajustadas manualmente; vuelve a asignar y confirmar las fechas.':'Columnas estimadas: sin encabezados no se pueden detectar todos los días vacíos. Ajusta los centros y asigna fechas mirando el original.','muted'));
+   const label=elem('label','Centros de columnas (% del ancho, separados por comas)'),positions=elem('input');positions.value=grid.centers.map(x=>(x/page.width*100).toFixed(2)).join(', ');positions.setAttribute('aria-label',`Centros de columnas de página ${page.page}`);
+   const apply=elem('button','Aplicar columnas','secondary');apply.type='button';apply.addEventListener('click',()=>{if(revision!==readingSession.revision)return;const values=parseColumnCenters(positions.value,page.width);if(!values){$('gridStatus').textContent='Introduce entre 1 y 14 porcentajes crecientes entre 0 y 100, separados por comas (decimales con punto).';return}render(values);$('gridStatus').textContent='Columnas actualizadas. Vuelve a asignar las fechas mirando el original.'});label.append(positions);section.append(label,apply);
+   if(!grid.centers.length){section.append(elem('p','No se detectaron columnas. Introduce sus centros manualmente o utiliza el análisis de filas.'));return}
+   const inputs=grid.centers.map((_,i)=>{const wrap=elem('div'),label=elem('label',`Página ${page.page} · columna ${i+1} · fecha`),input=elem('input');input.type='date';input.setAttribute('aria-label',`Fecha página ${page.page} columna ${i+1}`);label.append(input);wrap.append(label);dateSection.append(wrap);return input});
+   const table=elem('table');table.className='hoursTable';table.style.minWidth='700px';const header=elem('tr');for(const text of ['Empleado / fila',...grid.centers.map((_,i)=>`Columna ${i+1}`)])header.append(elem('th',text));table.append(header);
+   for(const row of grid.rows){const tr=elem('tr');tr.append(elem('td',row.label||'—'));
+    row.cells.forEach((cell,i)=>{const td=elem('td');td.style.whiteSpace='normal';td.append(elem('small',cell.raw||'—'));if(cell.warning)td.append(elem('p',cell.warning,'muted'));
+     if(cell.reviewable){const button=elem('button',cell.employee.status==='active'?'Revisar':'Excluido · no registrar','secondary');button.type='button';button.disabled=cell.employee.status!=='active';button.addEventListener('click',()=>{if(!validDate(inputs[i].value)){$('gridStatus').textContent='Asigna una fecha válida a esta columna antes de continuar.';inputs[i].focus();return}prepareOcrRecord({employeeId:cell.employee.id,date:inputs[i].value,start:cell.shift.start,end:cell.shift.end,kind,revision})});td.append(button);if(cell.employee.status==='active')proposals++;else excluded++}tr.append(td)});table.append(tr)}
+   section.append(table);section.append(elem('p',`${proposals} propuestas revisables; ${excluded} referencias excluidas en esta página. Nada se guardó.`,'muted'));total+=proposals;
+  }
+  render();
+ }
+ $('gridStatus').textContent=`Tabla reconstruida. ${total} propuestas iniciales; verifica empleado, límites y fechas contra el original. Nada se guardó.`;
+}
+$('buildGrid').addEventListener('click',buildGrid);
+$('clearGrid').addEventListener('click',()=>{ocrPositionPages=[];$('gridCandidates').replaceChildren();$('gridDates').replaceChildren();if(recordOcrSource)$('recordForm').reset();$('gridStatus').textContent='Tabla y coordenadas descartadas. Ejecuta OCR para reconstruir de nuevo.'});
+
+$('findCandidates').addEventListener('click',()=>{const root=$('assistCandidates');root.replaceChildren();const revision=readingSession.revision,kind=$('assistType').value;const lines=$('assistText').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);let count=0;for(const line of lines){const date=parseDate(line),times=parseTimes(line),person=findPerson(line);if(!date||times.length<2)continue;count++;const wrap=elem('div',undefined,'person'),left=elem('div');left.append(elem('b',`${date} · ${times[0]}–${times[1]}`));left.append(elem('small',person?`Nombre sugerido: ${person.name}`:'Empleado sin identificar'));const excerpt=elem('small',line.slice(0,190));excerpt.style.display='block';left.append(excerpt);const btn=elem('button','Revisar en Horas','secondary');btn.addEventListener('click',()=>{prepareOcrRecord({employeeId:person?.id,date,start:times[0],end:times[1],kind,revision});});wrap.append(left,btn);root.append(wrap);if(count>=100)break}if(!count)root.append(elem('p','No se encontraron líneas con fecha y dos horas. Puedes introducir la jornada directamente en Horas.','muted'));assistMessage(`${count} propuesta(s) detectada(s). Ninguna se guardó automáticamente.`)});
+
+sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){resetPrivateState();show('login');setNotice('Sesión cerrada. Datos locales descartados.')}});
+const url=new URL(location.href),authLink=location.hash.includes('access_token=')||url.searchParams.has('code');if(url.searchParams.has('error')){show('login');setNotice('Enlace de acceso inválido o vencido.')}else{try{const{data}=await sb.auth.getSession();if(data.session&&authLink){show('password');setNotice('Invitación reconocida. Establece una contraseña segura.')}else if(data.session)await initialize();else{show('login');setNotice('Inicia sesión para continuar.')}}catch(err){show('login');setNotice('No se pudo validar el acceso: '+err.message)}}
+</script></body></html>
